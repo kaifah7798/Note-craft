@@ -4,6 +4,11 @@ import streamlit as st
 from processor import process_multiple_pdfs
 from transcriber import transcribe_audio
 from llm_engine import generate_study_pack
+import os
+import re
+import requests
+
+
 
 CATALOG_PATH = Path("drive_catalog.json")
 
@@ -73,6 +78,31 @@ def render_subject_and_topic(profile: dict) -> tuple[str, str, str, dict]:
         .get(selected, {})
     )
     return selected, unit_name, topic_keyword, subject_meta if isinstance(subject_meta, dict) else {}
+
+def text_to_speech_elevenlabs(notes_md: str) -> bytes | None:
+    api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    if not api_key:
+        st.error("ELEVENLABS_API_KEY missing in .env")
+        return None
+
+    # Sirf 60-Second Quick Recap section uthao (fallback: first 600 chars)
+    match = re.search(r"###\s*4\..*?\n(.*)", notes_md, re.DOTALL | re.IGNORECASE)
+    text = match.group(1) if match else notes_md[:600]
+    clean_text = re.sub(r"[#*`_>-]", "", text).strip()[:800]
+
+    voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel (clean default voice)
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
+    payload = {
+        "text": clean_text,
+        "model_id": "eleven_multilingual_v2",
+    }
+
+    res = requests.post(url, json=payload, headers=headers, timeout=30)
+    if res.status_code == 200:
+        return res.content
+    st.error(f"ElevenLabs error ({res.status_code}): {res.text[:150]}")
+    return None
 
 def render_study_tab(profile: dict):
     left, right = st.columns([1, 1.45], gap="large")
@@ -233,18 +263,29 @@ def render_study_tab(profile: dict):
                     with st.expander("View Groq Whisper Audio Transcript"):
                         st.write(st.session_state["last_transcript"])
 
-                st.markdown(st.session_state["last_notes"])
+                raw_notes = st.session_state["last_notes"]
+                clean_notes = re.sub(r"\\\[(.*?)\\\]", r"$$\1$$", raw_notes, flags=re.DOTALL)
+                clean_notes = re.sub(r"\\\((.*?)\\\)", r"$\1$", clean_notes, flags=re.DOTALL)
+                st.markdown(clean_notes)
+                if st.button("🎧 Listen to 60s Recap", use_container_width=True):
+                    with st.spinner("Generating audio recap via ElevenLabs..."):
+                        audio_bytes = text_to_speech_elevenlabs(st.session_state["last_notes"])
+                        if audio_bytes:
+                            st.session_state["recap_audio"] = audio_bytes
+
+                if st.session_state.get("recap_audio"):
+                    st.audio(st.session_state["recap_audio"], format="audio/mp3")
 
                 st.write("")
                 active_subject = st.session_state.get("last_subject", subject or "study_pack")
                 b1, b2 = st.columns([1, 3])
                 with b1:
                     st.download_button(
-                        "Download .md",
+                        "Download .txt",
                         data=st.session_state["last_notes"],
-                        file_name=f"{active_subject.lower().replace(' ', '_')}_notes.md",
-                        mime="text/markdown",
-                        use_container_width=True
+                        file_name=f"{active_subject.lower().replace(' ', '_')}_notes.txt",
+                        mime="text/plain",
+                        use_container_width=True,
                     )
                 with b2:
                     if st.button("Clear Workspace"):

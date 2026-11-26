@@ -79,6 +79,7 @@ def generate_study_pack(
 {audio_chunk}
 
 If the provided PDF/transcript does not match the requested Subject or Unit, start with a clear mismatch warning instead of making things up.
+IF teacher hints are missing, highlight the high-weightage exam traps from the notes and pyq's and also from the topics that teacher put more effort in the class.   
 Generate a clean exam revision pack with these exact sections:
 ### 1. Teacher Spotlight (Exam Hints & Traps)
 Extract any emphasized topics, repeated derivations, edge cases, or exam warnings from the transcript (if no transcript is provided, highlight the top 3 high-weightage exam traps from the notes).
@@ -88,6 +89,7 @@ Concise, point-to-point breakdown of core concepts, definitions, and steps.
 
 ### 3. Key Formulas / Code / Derivations
 Clean formulas or code snippets ready for exam writing.
+Use ONLY $...$ for inline math and $$...$$ for block equations. Never use \[ \] or \( \).
 
 ### 4. 60-Second Quick Recap
 5 crisp bullet points to skim right before entering the exam hall.

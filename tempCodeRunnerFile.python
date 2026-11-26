@@ -1,0 +1,7 @@
+import sympy as sp
+x, y = sp.symbols('x y')
+u = sp.exp(x)/2 * (sp.cos(y) + sp.sin(y))
+v = sp.exp(x)/2 * (sp.cos(y) - sp.sin(y))
+J = sp.det(sp.Matrix([[sp.diff(u,x), sp.diff(u,y)],
+                      [sp.diff(v,x), sp.diff(v,y)]]))
+sp.simplify(J)  # Output: -exp(2*x)/2
