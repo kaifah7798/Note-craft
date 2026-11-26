@@ -6,8 +6,7 @@ from ui_pyq import render_pyq_tab
 from ui_test import render_test_tab
 from ui_dashboard import render_dashboard_tab
 
-LOGO_PATH = Path("logo.png")  # <-- apna exact logo filename/path yahan rakh
-
+LOGO_PATH = Path("logo.png")  
 st.set_page_config(
     page_title="NoteCraft AI",
     page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "NC",
